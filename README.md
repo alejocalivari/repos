@@ -23,3 +23,18 @@ Search any GitHub username and explore repositories, languages, and activity thr
 - CSS3
 - Vanilla JavaScript
 - GitHub REST API
+
+Loads the dashboard directly with that GitHub profile.
+
+## Purpose
+
+This project was built as a **portfolio frontend project** focused on:
+
+- API integration
+- UI architecture
+- repository data analysis
+- modern dashboard UX
+
+## Author
+
+Alejo Calivari
