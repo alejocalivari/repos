@@ -30,9 +30,9 @@ const elements = {
   themeLabel: document.querySelector(".theme-toggle__label"),
   localeButtons: Array.from(document.querySelectorAll("[data-locale]")),
   localeGroup: document.querySelector(".toggle-group"),
+  appTitle: document.getElementById("app-title"),
   heroKicker: document.getElementById("hero-kicker"),
   heroLead: document.getElementById("hero-lead"),
-  searchHelper: document.getElementById("search-helper"),
   heroPills: document.getElementById("hero-pills"),
   insightsKicker: document.getElementById("insights-kicker"),
   insightsTitle: document.getElementById("insights-title"),
@@ -189,6 +189,30 @@ function getStaggerClass(index) {
 
 function getStoredUsername() {
   return getStoredValue(STORAGE_KEYS.username, DEFAULT_USERNAME).trim() || DEFAULT_USERNAME;
+}
+
+function getUsernameFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return (params.get("user") || "").trim();
+}
+
+function setUsernameInURL(username, { replace = false } = {}) {
+  const url = new URL(window.location.href);
+
+  if (username) {
+    url.searchParams.set("user", username);
+  } else {
+    url.searchParams.delete("user");
+  }
+
+  const nextURL = `${url.pathname}${url.search}${url.hash}`;
+  const currentURL = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (nextURL === currentURL && !replace) {
+    return;
+  }
+
+  window.history[replace ? "replaceState" : "pushState"]({ user: username || "" }, "", nextURL);
 }
 
 function hasActiveFilters() {
@@ -385,19 +409,72 @@ function getProcessedRepos() {
     .map((item) => item.repo);
 }
 
-function getHighlightScore(repo) {
-  const now = Date.now();
+function getRepoAgeInDays(repo) {
   const updatedAt = new Date(repo.updated_at).getTime();
-  const daysSinceUpdate = Math.max(0, Math.floor((now - updatedAt) / 86400000));
-  const recencyBonus = Math.max(0, 45 - Math.min(daysSinceUpdate, 45));
+  return Math.max(0, Math.floor((Date.now() - updatedAt) / 86400000));
+}
 
+function getRepoTractionScore(repo) {
+  const stars = Math.log2((repo.stargazers_count || 0) + 1) * 22;
+  const forks = Math.log2((repo.forks_count || 0) + 1) * 15;
+  return stars + forks;
+}
+
+function getRepoRecencyScore(repo) {
+  const ageInDays = getRepoAgeInDays(repo);
+  return Math.max(0, 100 - Math.min(ageInDays, 180) * 0.6);
+}
+
+function getRepoPresentationScore(repo) {
+  let score = 0;
+
+  if (repo.description) {
+    score += 14;
+  }
+
+  if (repo.homepage) {
+    score += 6;
+  }
+
+  if (repo.language) {
+    score += 4;
+  }
+
+  if (Array.isArray(repo.topics) && repo.topics.length) {
+    score += Math.min(repo.topics.length, 4) * 2;
+  }
+
+  return score;
+}
+
+function getRepoOriginalityScore(repo) {
+  return repo.fork ? -8 : 12;
+}
+
+function getTractionHighlightScore(repo) {
   return (
-    (repo.stargazers_count || 0) * 8 +
-    (repo.forks_count || 0) * 3 +
-    recencyBonus +
-    (repo.description ? 12 : 0) +
-    (repo.homepage ? 6 : 0) +
-    (!repo.fork ? 8 : 0)
+    getRepoTractionScore(repo) * 1.15 +
+    getRepoPresentationScore(repo) * 0.65 +
+    getRepoRecencyScore(repo) * 0.22 +
+    getRepoOriginalityScore(repo)
+  );
+}
+
+function getFreshHighlightScore(repo) {
+  return (
+    getRepoRecencyScore(repo) * 1.3 +
+    getRepoPresentationScore(repo) * 0.75 +
+    getRepoTractionScore(repo) * 0.18 +
+    getRepoOriginalityScore(repo)
+  );
+}
+
+function getBalancedHighlightScore(repo) {
+  return (
+    getRepoTractionScore(repo) * 0.58 +
+    getRepoRecencyScore(repo) * 0.34 +
+    getRepoPresentationScore(repo) +
+    getRepoOriginalityScore(repo)
   );
 }
 
@@ -406,7 +483,7 @@ function getStrongestRepo(repos) {
     return null;
   }
 
-  return [...repos].sort((left, right) => getHighlightScore(right) - getHighlightScore(left))[0];
+  return [...repos].sort((left, right) => getBalancedHighlightScore(right) - getBalancedHighlightScore(left))[0];
 }
 
 function getHighlightedRepos(repos) {
@@ -428,9 +505,8 @@ function getHighlightedRepos(repos) {
     tr("Top traction", "Mayor traccion"),
     tr("Highest public traction in this selection.", "Mayor traccion publica dentro de esta seleccion."),
     (left, right) =>
-      right.stargazers_count - left.stargazers_count ||
-      right.forks_count - left.forks_count ||
-      new Date(right.updated_at) - new Date(left.updated_at)
+      getTractionHighlightScore(right) - getTractionHighlightScore(left) ||
+      getBalancedHighlightScore(right) - getBalancedHighlightScore(left)
   );
 
   pick(
@@ -440,14 +516,14 @@ function getHighlightedRepos(repos) {
       "Repositorio con mantenimiento mas reciente dentro de la vista."
     ),
     (left, right) =>
-      new Date(right.updated_at) - new Date(left.updated_at) ||
-      getHighlightScore(right) - getHighlightScore(left)
+      getFreshHighlightScore(right) - getFreshHighlightScore(left) ||
+      getBalancedHighlightScore(right) - getBalancedHighlightScore(left)
   );
 
   pick(
     tr("Balanced pick", "Seleccion balanceada"),
     tr("Best blend of adoption, freshness, and presentation.", "Mejor mezcla de adopcion, frescura y presentacion."),
-    (left, right) => getHighlightScore(right) - getHighlightScore(left)
+    (left, right) => getBalancedHighlightScore(right) - getBalancedHighlightScore(left)
   );
 
   return highlighted;
@@ -588,6 +664,11 @@ async function fetchUserDashboard(username) {
 // Render helpers
 function renderStaticChrome() {
   elements.html.lang = state.locale;
+  elements.appTitle.textContent = tr(
+    "aleclv GitHub Profile Explorer",
+    "aleclv Explorador de Perfil de GitHub"
+  );
+  document.title = elements.appTitle.textContent;
   elements.skipLink.textContent = tr("Skip to dashboard", "Saltar al panel");
   elements.localeGroup.setAttribute("aria-label", tr("Language switcher", "Selector de idioma"));
   elements.form.setAttribute("aria-label", tr("GitHub profile search", "Busqueda de perfil de GitHub"));
@@ -603,10 +684,6 @@ function renderStaticChrome() {
   elements.input.placeholder = tr("Search GitHub username", "Buscar usuario de GitHub");
   elements.input.setAttribute("aria-label", tr("GitHub username", "Usuario de GitHub"));
   elements.searchButton.textContent = tr("Explore", "Explorar");
-  elements.searchHelper.textContent = tr(
-    "Search any public GitHub username. Press Enter to run the lookup.",
-    "Busca cualquier usuario publico de GitHub. Presiona Enter para iniciar la consulta."
-  );
   elements.insightsKicker.textContent = tr("Overview", "Vista general");
   elements.insightsTitle.textContent = tr("Repository Signals", "Senales del repositorio");
   elements.highlightsKicker.textContent = tr("Featured", "Destacados");
@@ -1316,13 +1393,19 @@ function renderDashboard() {
 }
 
 // Main data loader
-async function loadDashboard(username) {
+async function loadDashboard(username, options = {}) {
   const normalizedUsername = username.trim();
+  const shouldUpdateURL = options.updateURL !== false;
+  const shouldReplaceURL = options.replaceURL === true;
 
   if (!normalizedUsername) {
     announce(tr("Enter a GitHub username to begin.", "Ingresa un usuario de GitHub para comenzar."));
     elements.input.focus();
     return;
+  }
+
+  if (shouldUpdateURL) {
+    setUsernameInURL(normalizedUsername, { replace: shouldReplaceURL });
   }
 
   renderLoadingState();
@@ -1341,6 +1424,10 @@ async function loadDashboard(username) {
     elements.input.value = profile.login;
     elements.filterInput.value = "";
     setStoredValue(STORAGE_KEYS.username, profile.login);
+
+    if (shouldUpdateURL && profile.login !== normalizedUsername) {
+      setUsernameInURL(profile.login, { replace: true });
+    }
 
     renderDashboard();
     announce(
@@ -1518,18 +1605,37 @@ document.addEventListener("click", (event) => {
   }
 });
 
+window.addEventListener("popstate", (event) => {
+  const historyUsername =
+    typeof event.state?.user === "string" ? event.state.user.trim() : "";
+  const nextUsername = historyUsername || getUsernameFromURL() || getStoredUsername();
+
+  elements.input.value = nextUsername;
+  state.username = nextUsername;
+
+  loadDashboard(nextUsername, { updateURL: false });
+});
+
 // Initialization
 function initialize() {
   state.theme = state.theme === "light" ? "light" : "dark";
   state.locale = sanitizeLocale(state.locale);
 
+  const urlUsername = getUsernameFromURL();
+  const initialUsername = urlUsername || getStoredUsername();
+  state.username = initialUsername;
+
   setTheme(state.theme);
   renderStaticChrome();
 
-  const storedUsername = getStoredUsername();
-  elements.input.value = storedUsername;
+  elements.input.value = initialUsername;
+  const currentURL = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  window.history.replaceState({ user: initialUsername }, "", currentURL);
 
-  loadDashboard(storedUsername);
+  loadDashboard(initialUsername, {
+    updateURL: Boolean(urlUsername),
+    replaceURL: Boolean(urlUsername),
+  });
 }
 
 initialize();
