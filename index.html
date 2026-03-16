@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="A premium GitHub Repository Explorer dashboard built with HTML, CSS, and vanilla JavaScript."
+  >
+  <title>GitHub Repository Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+  <div class="background-glow background-glow-1" aria-hidden="true"></div>
+  <div class="background-glow background-glow-2" aria-hidden="true"></div>
+  <div class="background-glow background-glow-3" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="hero panel">
+      <div class="hero-top">
+        <div class="brand">
+          <div class="brand-mark">GH</div>
+          <div class="brand-copy">
+            <p class="eyebrow">Premium Developer Dashboard</p>
+            <h1>GitHub Repository Explorer</h1>
+          </div>
+        </div>
+
+        <button
+          id="theme-toggle"
+          class="icon-button theme-toggle"
+          type="button"
+          aria-label="Switch to light theme"
+          aria-pressed="false"
+        >
+          <span class="theme-toggle__icon" aria-hidden="true"></span>
+          <span class="theme-toggle__label">Light Mode</span>
+        </button>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-copy">
+          <p class="hero-lead">
+            Search any GitHub username and surface standout repositories, profile intelligence, and language
+            signals in a sleek portfolio-ready dashboard.
+          </p>
+
+          <div class="search-card">
+            <form id="search-form" class="search-form" novalidate>
+              <label class="sr-only" for="username-input">GitHub username</label>
+              <div class="search-input-wrap">
+                <span class="search-input-wrap__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                  </svg>
+                </span>
+                <input
+                  id="username-input"
+                  name="username"
+                  type="text"
+                  placeholder="Search GitHub username..."
+                  autocomplete="off"
+                  spellcheck="false"
+                >
+              </div>
+
+              <button id="search-button" class="primary-button" type="submit">
+                Explore Profile
+              </button>
+            </form>
+
+            <p class="search-helper">
+              Press Enter to search instantly. Your last search and sort preference are remembered automatically.
+            </p>
+          </div>
+        </div>
+
+        <div class="hero-metrics" aria-label="Product highlights">
+          <article class="mini-stat">
+            <span class="mini-stat__label">Focus</span>
+            <strong>Profile intelligence</strong>
+            <p>Fast access to the story behind every public GitHub account.</p>
+          </article>
+
+          <article class="mini-stat">
+            <span class="mini-stat__label">Signal</span>
+            <strong>Repository curation</strong>
+            <p>Forks are filtered out when better showcase projects are available.</p>
+          </article>
+
+          <article class="mini-stat">
+            <span class="mini-stat__label">Polish</span>
+            <strong>Premium UI states</strong>
+            <p>Designed loading, empty, and error experiences that still feel intentional.</p>
+          </article>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="profile-column" aria-label="Profile overview">
+        <div id="profile-panel" class="panel profile-panel" aria-live="polite" aria-busy="true"></div>
+
+        <section class="panel insight-panel" aria-labelledby="insights-title">
+          <div class="section-heading">
+            <p class="section-kicker">Overview</p>
+            <h2 id="insights-title">Repository Signals</h2>
+          </div>
+          <div id="insight-grid" class="insight-grid" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section class="panel repositories-panel" aria-labelledby="repositories-title">
+        <div class="repositories-panel__header">
+          <div class="section-heading">
+            <p class="section-kicker">Repository Showcase</p>
+            <h2 id="repositories-title">Public Repositories</h2>
+            <p id="repo-summary" class="section-copy">
+              Explore popular repositories, language choices, and the most recent project activity.
+            </p>
+          </div>
+
+          <div class="repo-controls">
+            <label class="control-field" for="sort-select">
+              <span>Sort by</span>
+              <select id="sort-select" aria-label="Sort repositories">
+                <option value="stars">Most starred</option>
+                <option value="updated">Recently updated</option>
+              </select>
+            </label>
+
+            <label class="control-field control-field--search" for="filter-input">
+              <span>Filter repos</span>
+              <input
+                id="filter-input"
+                type="search"
+                inputmode="search"
+                placeholder="Filter by repository name"
+                aria-label="Filter repositories by name"
+              >
+            </label>
+          </div>
+        </div>
+
+        <div id="repo-state" class="repo-state" aria-live="polite"></div>
+        <div id="repo-grid" class="repo-grid"></div>
+
+        <div class="repositories-panel__footer">
+          <button id="show-more-button" class="secondary-button" type="button" hidden>
+            Show More Repositories
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <div id="status-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
