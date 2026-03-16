@@ -34,9 +34,6 @@ const elements = {
   heroLead: document.getElementById("hero-lead"),
   searchHelper: document.getElementById("search-helper"),
   heroPills: document.getElementById("hero-pills"),
-  heroSummaryKicker: document.getElementById("hero-summary-kicker"),
-  heroSummaryTitle: document.getElementById("hero-summary-title"),
-  heroSummaryGrid: document.getElementById("hero-summary-grid"),
   insightsKicker: document.getElementById("insights-kicker"),
   insightsTitle: document.getElementById("insights-title"),
   highlightsKicker: document.getElementById("highlights-kicker"),
@@ -596,12 +593,12 @@ function renderStaticChrome() {
   elements.form.setAttribute("aria-label", tr("GitHub profile search", "Busqueda de perfil de GitHub"));
   elements.heroPills.setAttribute("aria-label", tr("Dashboard capabilities", "Capacidades del panel"));
   elements.heroKicker.textContent = tr(
-    "Recruiter-ready GitHub intelligence",
-    "Inteligencia de GitHub lista para portfolio"
+    "GitHub profile explorer",
+    "Explorador de perfiles de GitHub"
   );
   elements.heroLead.textContent = tr(
-    "Search a GitHub profile and review standout repositories, stack choices, and recent activity in one polished dashboard.",
-    "Busca un perfil de GitHub y revisa repositorios destacados, stack tecnico y actividad reciente en un panel pulido."
+    "Search any GitHub username and explore repositories, languages, and recent activity.",
+    "Busca cualquier usuario de GitHub y explora repositorios, lenguajes y actividad reciente."
   );
   elements.input.placeholder = tr("Search GitHub username", "Buscar usuario de GitHub");
   elements.input.setAttribute("aria-label", tr("GitHub username", "Usuario de GitHub"));
@@ -610,8 +607,6 @@ function renderStaticChrome() {
     "Search any public GitHub username. Press Enter to run the lookup.",
     "Busca cualquier usuario publico de GitHub. Presiona Enter para iniciar la consulta."
   );
-  elements.heroSummaryKicker.textContent = tr("Product snapshot", "Resumen del producto");
-  elements.heroSummaryTitle.textContent = tr("What this view optimizes", "Que optimiza esta vista");
   elements.insightsKicker.textContent = tr("Overview", "Vista general");
   elements.insightsTitle.textContent = tr("Repository Signals", "Senales del repositorio");
   elements.highlightsKicker.textContent = tr("Featured", "Destacados");
@@ -642,53 +637,11 @@ function renderStaticChrome() {
   elements.clearFiltersButton.textContent = tr("Reset filters", "Restablecer filtros");
   elements.showMoreButton.textContent = tr("Show more repositories", "Mostrar mas repositorios");
 
-  renderHeroSummaryCards();
   renderHeroPills();
   renderSortOptions();
   renderLanguageOptions();
   updateLocaleToggle();
   updateThemeToggle();
-}
-
-function renderHeroSummaryCards() {
-  const cards = [
-    {
-      eyebrow: tr("Fast scan", "Lectura rapida"),
-      title: tr("Profile first", "Perfil primero"),
-      copy: tr(
-        "Core profile context, social proof, and repository signal stay visible side by side.",
-        "El contexto del perfil, la prueba social y la senal tecnica quedan visibles al mismo tiempo."
-      ),
-    },
-    {
-      eyebrow: tr("Curated repos", "Repos curados"),
-      title: tr("Fork-light showcase", "Showcase con menos forks"),
-      copy: tr(
-        "Original work is prioritized automatically so portfolio signal is easier to read.",
-        "El trabajo original se prioriza automaticamente para que el portfolio sea mas claro."
-      ),
-    },
-    {
-      eyebrow: tr("Practical UX", "UX practica"),
-      title: tr("Mobile ready", "Listo para mobile"),
-      copy: tr(
-        "Search, filters, and highlights stay usable on smaller screens without crowding.",
-        "Busqueda, filtros y destacados siguen siendo comodos en pantallas pequenas."
-      ),
-    },
-  ];
-
-  elements.heroSummaryGrid.innerHTML = cards
-    .map((card) => {
-      return `
-        <article class="hero-summary-card">
-          <p class="hero-summary-card__eyebrow">${escapeHTML(card.eyebrow)}</p>
-          <strong>${escapeHTML(card.title)}</strong>
-          <p>${escapeHTML(card.copy)}</p>
-        </article>
-      `;
-    })
-    .join("");
 }
 
 function renderHeroPills() {
@@ -1142,7 +1095,10 @@ function renderHighlights(processedRepos) {
   elements.highlightGrid.innerHTML = highlighted
     .map((item, index) => {
       const repo = item.repo;
-      const description = repo.description || tr("No description provided.", "Sin descripcion publicada.");
+      const description = repo.description || tr(
+        "No project description provided yet.",
+        "Todavia no hay una descripcion del proyecto."
+      );
       const language = repo.language || getUnknownLanguageLabel();
 
       return `
@@ -1169,6 +1125,7 @@ function renderHighlights(processedRepos) {
           <div class="highlight-card__metrics">
             <span class="highlight-card__metric">${getIcon("star")} ${formatCompactNumber(repo.stargazers_count)}</span>
             <span class="highlight-card__metric">${getIcon("fork")} ${formatCompactNumber(repo.forks_count)}</span>
+            <span class="highlight-card__metric">${escapeHTML(interpolate(tr("Updated {date}", "Actualizado {date}"), { date: formatDate(repo.updated_at) }))}</span>
           </div>
 
           <div class="highlight-card__footer">
@@ -1276,7 +1233,10 @@ function renderRepositories(processedRepos) {
 
   elements.repoGrid.innerHTML = visibleRepos
     .map((repo, index) => {
-      const description = repo.description || tr("No description provided.", "Sin descripcion publicada.");
+      const description = repo.description || tr(
+        "No project description provided yet.",
+        "Todavia no hay una descripcion del proyecto."
+      );
       const language = repo.language || getUnknownLanguageLabel();
 
       return `
